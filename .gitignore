@@ -1,4 +1,6 @@
 *.beam
 *~
 *.fw
-ebin
+*.img
+ebin/
+deps/
