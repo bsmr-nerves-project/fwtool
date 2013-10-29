@@ -4,3 +4,4 @@
 *.img
 ebin/
 deps/
+fwtool

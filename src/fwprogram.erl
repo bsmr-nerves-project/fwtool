@@ -2,10 +2,13 @@
 
 -export([program/3]).
 
--export([main/0]).
+-export([main/1]).
 
-main() ->
-    program("test.fw", update_a, "image.img").
+main(Options) ->
+    DestinationPath = proplists:get_value(destination, Options),
+    UpdateType = proplists:get_value(update_type, Options),
+    FirmwarePath = proplists:get_value(firmware, Options),
+    program(FirmwarePath, UpdateType, DestinationPath).
 
 program(FirmwarePath, UpdateType, DestinationPath) ->
     {ok, Destination} = file:open(DestinationPath, [write]),

@@ -1,16 +1,14 @@
 -module(fwbuilder).
 
--export([main/0]).
+-export([main/1]).
 
-main() ->
-    {ok, Options} = file:consult("firmware.config"),
+main(Options) ->
     BootFs = boot_fs(Options),
     MbrA = mbr_a(Options),
     MbrB = mbr_b(Options),
     RootFsPath = proplists:get_value(rootfs_path, Options),
     {ok, RootFs} = file:read_file(RootFsPath),
-    build_fw_file(Options, BootFs, MbrA, MbrB, RootFs),
-    build_image(Options, BootFs, MbrA, MbrB, RootFs).
+    build_fw_file(Options, BootFs, MbrA, MbrB, RootFs).
 
 in_blocks(What, Options) ->
     proplists:get_value(What, Options).
@@ -25,24 +23,21 @@ build_fw_file(Options, BootFs, MbrA, MbrB, RootFs) ->
 		      [<<"pwrite">>, <<"data/mbr-a.img">>, 0, byte_size(MbrA)]]},
 		    {update_b, 
 		     [[<<"pwrite">>, <<"data/rootfs.img">>, in_bytes(rootfs_b_partition_start, Options), byte_size(RootFs)],
-		      [<<"pwrite">>, <<"data/mbr-b.img">>, 0, byte_size(MbrB)]]}
+		      [<<"pwrite">>, <<"data/mbr-b.img">>, 0, byte_size(MbrB)]]},
+		    {complete, 
+		     [[<<"pwrite">>, <<"data/mbr-a.img">>, 0, byte_size(MbrA)],
+		      [<<"pwrite">>, <<"data/boot.img">>, in_bytes(boot_partition_start, Options), byte_size(BootFs)],
+		      [<<"pwrite">>, <<"data/rootfs.img">>, in_bytes(rootfs_a_partition_start, Options), byte_size(RootFs)],
+		      [<<"pwrite">>, <<"data/rootfs.img">>, in_bytes(rootfs_b_partition_start, Options), byte_size(RootFs)]]}
 		   ],
     InstructionsBin = jsx:encode(Instructions, [space, indent]),
-    io:format("~p~n", [InstructionsBin]),
     FileList = [{"instructions.json", InstructionsBin},
 		{"data/boot.img", BootFs},
 		{"data/mbr-a.img", MbrA},
 		{"data/mbr-b.img", MbrB},
 	        {"data/rootfs.img", RootFs}],
-    {ok, _} = zip:create("test.fw", FileList).   
-
-build_image(Options, BootFs, MbrA, _MbrB, RootFs) ->
-    {ok, ImageFile} = file:open("test.img", [write]),
-    ok = file:pwrite(ImageFile, 0, MbrA),
-    ok = file:pwrite(ImageFile, in_bytes(boot_partition_start, Options), BootFs),
-    ok = file:pwrite(ImageFile, in_bytes(rootfs_a_partition_start, Options), RootFs),
-    ok = file:pwrite(ImageFile, in_bytes(rootfs_b_partition_start, Options), RootFs),
-    ok = file:close(ImageFile).
+    OutputFile = proplists:get_value(firmware, Options),
+    {ok, _} = zip:create(OutputFile, FileList).   
 
 % Build the MBR for booting off partition A
 mbr_a(Options) ->
