@@ -1,24 +1,26 @@
-# fwbuilder 
+# fwtool
 
-This is an Erlang port of firmware image builder and
-programmers I've written or used on other embedded systems. It
+This is an Erlang version that's has similar features to some firmware
+image builders I've written or used in other environments. It
 currently creates images for the Beaglebone.
 
-The fwbuilder application can create firmware files (.fw) and raw
-images (.img). Raw images are intended for bulk programming of Flash
-parts, since it is usually easiest (or only possible) to write one
-large image to a part. The firmware files include binary data and
-offset information so they can minimize the amount of data written to
-perform an update and therefore can be run more quickly. Firmware
-files are compressed zip files internally and can be exchanged over
-the Internet more easily than raw images.
+The fwtool application can be invoked both at the command line and
+from within Erlang. Its purpose is to create firmware files (.fw) and
+apply them to SDCards, eMMC, or raw image files suitable for bulk
+programming.  Firmware files contain instructions so that only parts
+of the non-volatile storage that need to be updated are programmed. It
+can also be used to perform in-place upgrades, selectively program
+parts, and enable other features such as progress reporting, digitally
+signed updates, etc.  Firmware files are compressed zip files
+internally so they can be exchanged over the Internet easily and have
+some protection against corruption.
 
 ## Firmware image format
 
-Firmware files are zip archives that must contain at least an
-`instructions.json` file. In the common case that the
-`instructions.json` file references other files in the archive, those
-files must be present as well.
+As previously mentioned, firmware files are just zip archives. They must
+contain at least one file called `instructions.json`. In the common
+case, the `instructions.json` file references other files in the
+archive.
 
 The `instructions.json` file contains one JSON object. The keys are
 update types and the value is a list of commands. For example:
@@ -47,8 +49,13 @@ This firmware update contains 4 update types: "bootloader",
 naming or semantics, but for the sake of clarity, the above example
 expects a device with a Flash part containing a bootloader and two
 firmware locations. The firmware flasher alternates between firmware
-locations and then programs the device's Master Boot Record so that
-the device boots to the most recently programmed location.
+locations (e.g. A and B) and then programs the device's Master Boot
+Record (MBR) so that the device boots to the most recently programmed
+location. Note that the MBR is programmed last for both the "update_a"
+and "update_b" types. Since the programming of the MBR switches which
+firmware location is active, performing that the end makes the update
+process more robust against a power failure while programming the
+rootfs.
 
 The command list contains zero or more commands. The following
 commands are defined:
@@ -63,5 +70,79 @@ to the specified offset. It has the following form:
 The DestinationOffset should be specified in bytes. FileSize can be
 used by the programmer to provide update progress information.
 
-## Invoking
+## Invoking from the command line
 
+The fwtool program takes options from both the command line and a
+config file (`fwtool.config` if unspecified). Most options are
+available both places for convenience. Usage is:
+
+    fwtool [options] <command> <firmware filename>
+
+Commands are `create` and `run` for creating firmware images and
+running them respectively. Options are summarized below:
+
+--config (-c)
+: A config file [default: fwtool.config]
+
+--destination (-d)
+: The destination device or file that will receive the update (run)
+
+--type (-t)
+: The update type. This must match an available update type in the
+firmware archive. (run)
+
+--boot_partition_start
+: Boot partition start in blocks (create)
+
+--boot_partition_count
+: Boot partition size in blocks (create)
+
+--rootfs_a_partition_start
+: Rootfs A partition start in blocks (create)
+
+--rootfs_a_partition_count
+: Rootfs A partition size in blocks (create)
+
+--rootfs_b_partition_start
+: Rootfs B partition start in blocks (create)
+
+--rootfs_b_partition_count
+: Rootfs B partition size in blocks (create)
+
+--application_partition_start
+: App partition start in blocks (create)
+
+--application_partition_count
+: App partition size in blocks (create)
+
+--mlo_path
+: Path to MLO bootloader (create)
+
+--uboot_path
+: Path to U-Boot bootloader (create)
+
+--rootfs_path
+: Path to RootFS image (create)
+
+### Examples
+
+Create a firmware image (assumes most options are in fwtool.config):
+
+    ./fwtool create myfirmware.fw
+
+Create a raw image for a bulk memory programmer from the myfirmware.fw
+file:
+
+    ./fwtool -d myimage.img -t complete run myfirmware.fw
+
+## Invoking from Erlang
+
+## Todo
+
+In no particular order:
+
+ 1. Add digital signature support
+ 2. Add ability to report progress
+ 3. Add commands for checking target compatibility (e.g. compatible MBR offsets)
+ 4. Add check that destination is unmounted to avoid accidents
+ 5. Add firmware metadata to the fw archive and helper functions to read it
