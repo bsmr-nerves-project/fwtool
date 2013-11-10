@@ -24,7 +24,7 @@
 
 -module(subprocess).
 
--export([run/1, run/2]).
+-export([run/1, run/2, run/3]).
 
 % Run the specified executable and return ok on success
 run(Executable) ->
@@ -32,12 +32,17 @@ run(Executable) ->
 
 % Run an executable with the arguments passed in as a list
 run(Executable, Args) ->
+    run(Executable, Args, <<>>).
+
+% Run an executable with arguments and send Input to it
+run(Executable, Args, Input) ->
     case os:find_executable(Executable) of
 	false ->
 	    exit(enoent);
 	FoundExecutable ->
 	    Port = open_port({spawn_executable, FoundExecutable},
 			     [exit_status, {args, Args}, stderr_to_stdout]),
+	    Port ! {self(), {command, Input}},
 	    loop_till_done(Port)
     end.
 
