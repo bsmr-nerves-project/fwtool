@@ -72,7 +72,10 @@ usage() ->
     getopt:usage(option_spec_list(), "fwtool"),
     io:format("Commands:~n"),
     io:format("  create   Create a firmware file~n"),
-    io:format("  run      Run the firmware update~n").
+    io:format("  run      Run the firmware update~n"),
+    io:format("~n"),
+    io:format("Examples:~n"),
+    io:format("  sudo env PATH=$PATH fwtool -d /dev/sdc -t complete run bbb.fw~n").
 
 option_spec_list() ->
     [

@@ -135,6 +135,12 @@ file:
 
     ./fwtool -d myimage.img -t complete run myfirmware.fw
 
+Program an SDCard that shows up as /dev/sdc. Root privileges are needed
+to write to /dev/sdc and the "env PATH=$PATH" is needed since Erlang
+probably isn't in the reduced sudo path.
+
+    sudo env PATH=$PATH ./fwtool -d /dev/sdc -t complete run myfirmware.fw
+
 ## Invoking from Erlang
 
 ## Todo
@@ -146,3 +152,4 @@ In no particular order:
  3. Add commands for checking target compatibility (e.g. compatible MBR offsets)
  4. Add check that destination is unmounted to avoid accidents
  5. Add firmware metadata to the fw archive and helper functions to read it
+ 6. Add command to list the available update types in a .fw file
