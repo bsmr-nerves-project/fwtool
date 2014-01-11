@@ -97,6 +97,7 @@ option_spec_list() ->
 
      {mlo_path, undefined, "mlo_path", string, "Path to MLO bootloader (create)"},
      {uboot_path, undefined, "uboot_path", string, "Path to U-Boot bootloader (create)"},
+     {uenv_txt, undefined, "uenv_txt", string, "Contents of the uEnv.txt file (create)"},
      {rootfs_path, undefined, "rootfs_path", string, "Path to RootFS image (create)"},
      {command,     undefined,   undefined,  string,     "Command"},
      {firmware,    undefined,   undefined,  string,     "Firmware file name"}

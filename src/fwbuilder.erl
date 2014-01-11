@@ -51,8 +51,7 @@ build_fw_file(Options, BootFs, MbrA, MbrB, RootFs) ->
 		    {complete,
 		     [[<<"pwrite">>, <<"data/mbr-a.img">>, 0, byte_size(MbrA)],
 		      [<<"pwrite">>, <<"data/boot.img">>, in_bytes(boot_partition_start, Options), byte_size(BootFs)],
-		      [<<"pwrite">>, <<"data/rootfs.img">>, in_bytes(rootfs_a_partition_start, Options), byte_size(RootFs)],
-		      [<<"pwrite">>, <<"data/rootfs.img">>, in_bytes(rootfs_b_partition_start, Options), byte_size(RootFs)]]}
+		      [<<"pwrite">>, <<"data/rootfs.img">>, in_bytes(rootfs_a_partition_start, Options), byte_size(RootFs)]]}
 		   ],
     InstructionsBin = jsx:encode(Instructions, [space, indent]),
     FileList = [{"instructions.json", InstructionsBin},
@@ -85,14 +84,31 @@ mbr_b(Options) ->
 		{normal, linux, in_blocks(application_partition_start, Options),
 		 in_blocks(application_partition_count, Options)}]).
 
+-spec tmpdir() -> string().
+tmpdir() ->
+    case os:getenv("TMPDIR") of
+	false -> "/tmp";
+	Dir -> Dir
+    end.
+
 % Build the boot file system
+-spec boot_fs([term()]) -> binary().
 boot_fs(Options) ->
-    TmpFilename = "/tmp/boot.vfat",
-    ok = subprocess:run("dd", ["if=/dev/zero", "of=" ++ TmpFilename, "count=0",
+    BootFilename = tmpdir() ++ "/boot.vfat",
+    ok = subprocess:run("dd", ["if=/dev/zero", "of=" ++ BootFilename, "count=0",
 			  "seek=" ++ integer_to_list(in_blocks(boot_partition_count, Options))]),
-    ok = subprocess:run("mkfs.vfat", ["-F", "12", "-n", "boot", TmpFilename]),
-    ok = subprocess:run("mcopy", ["-i", TmpFilename, in_blocks(mlo_path, Options), "::MLO"]),
-    ok = subprocess:run("mcopy", ["-i", TmpFilename, in_blocks(uboot_path, Options), "::U-BOOT.IMG"]),
-    {ok, Contents} = file:read_file(TmpFilename),
-    ok = file:delete(TmpFilename),
+    ok = subprocess:run("mkfs.vfat", ["-F", "12", "-n", "boot", BootFilename]),
+    ok = subprocess:run("mcopy", ["-i", BootFilename, proplists:get_value(mlo_path, Options), "::MLO"]),
+    ok = subprocess:run("mcopy", ["-i", BootFilename, proplists:get_value(uboot_path, Options), "::U-BOOT.IMG"]),
+    case proplists:get_value(uenv_txt, Options) of
+	UEnvTxtContents when is_list(UEnvTxtContents) ->
+	    TmpFilename = tmpdir() ++ "/uEnv.txt",
+	    ok = file:write_file(TmpFilename, list_to_binary(UEnvTxtContents)),
+	    ok = subprocess:run("mcopy", ["-i", BootFilename, TmpFilename, "::UENV.TXT"]),
+	    ok = file:delete(TmpFilename);
+	undefined ->
+	    ok
+    end,
+    {ok, Contents} = file:read_file(BootFilename),
+    ok = file:delete(BootFilename),
     Contents.

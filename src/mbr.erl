@@ -50,6 +50,7 @@ boottype_to_flag(normal) -> 0.
 %%  {normal, linux, LbaStartPart3, LbaCountPart3},
 %%  {normal, linux, LbaStartPart4, LbaCountPart4}]
 %%
+-spec create([{atom(), atom(), integer(), integer()}]) -> binary().
 create([Partition1, Partition2, Partition3, Partition4]) ->
     DiskId = 0, % Should be unique, but unused for firmware images
     Signature = 16#aa55,

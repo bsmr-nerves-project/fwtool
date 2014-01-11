@@ -5,3 +5,4 @@
 ebin/
 deps/
 fwtool
+.depsolver_plt
