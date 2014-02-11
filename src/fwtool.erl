@@ -60,7 +60,11 @@ help_or_run_command(Command, Options) ->
 run_command("create", Options) ->
     fwbuilder:main(Options);
 run_command("run", Options) ->
-    fwprogram:main(Options);
+    DestinationPath = proplists:get_value(destination, Options),
+    UpdateType = proplists:get_value(update_type, Options),
+    FirmwarePath = proplists:get_value(firmware, Options),
+    fwprogrammer:start_link(),
+    fwprogrammer:program(FirmwarePath, UpdateType, DestinationPath);
 run_command(undefined, _Options) ->
     io:format("Error: specify a command~n"),
     usage();

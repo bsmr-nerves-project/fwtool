@@ -70,6 +70,22 @@ to the specified offset. It has the following form:
 The DestinationOffset should be specified in bytes. FileSize can be
 used by the programmer to provide update progress information.
 
+### compare_and_run
+
+This command compares the contents of a file in the firmware archive
+with one on the destination. If they match, it runs the commands of
+a specified update. It has the form:
+
+    ["compare_and_run", Filename, Offset, Size, SuccessUpdateType]
+
+On a mismatch, the next command in the list is run.
+
+### fail
+
+This command immediately fails the update with a message. It is
+intended to be used with `compare_and_run` when none of the comparisons
+match.
+
 ## Invoking from the command line
 
 The fwtool program takes options from both the command line and a
@@ -141,8 +157,6 @@ probably isn't in the reduced sudo path.
 
     sudo env PATH=$PATH ./fwtool -d /dev/sdc -t complete run myfirmware.fw
 
-## Invoking from Erlang
-
 ## Todo
 
 In no particular order:
@@ -153,3 +167,5 @@ In no particular order:
  4. Add check that destination is unmounted to avoid accidents
  5. Add firmware metadata to the fw archive and helper functions to read it
  6. Add command to list the available update types in a .fw file
+ 7. Add error messages and make any thrown exceptions prettier
+ 8. Add support for more than 4 partitions

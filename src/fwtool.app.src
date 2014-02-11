@@ -1,8 +1,7 @@
-%% -*- erlang-indent-level: 4; indent-tabs-mode: nil; fill-column: 80 -*-
-
+%% -*- mode: Erlang; fill-column: 80; comment-column: 75; -*-
 {application, fwtool,
  [
-  {description, "Firmware Builder"},
+  {description, "Nerves Firmware Builder"},
   {vsn, "1"},
   {registered, []},
   {applications, [kernel, stdlib, getopt]}

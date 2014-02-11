@@ -26,6 +26,7 @@
 
 -export([main/1]).
 
+-spec main([{atom(), term()}]) -> ok.
 main(Options) ->
     BootFs = boot_fs(Options),
     MbrA = mbr_a(Options),
@@ -34,11 +35,14 @@ main(Options) ->
     {ok, RootFs} = file:read_file(RootFsPath),
     build_fw_file(Options, BootFs, MbrA, MbrB, RootFs).
 
+-spec in_blocks(atom(), [{atom(), term()}]) -> non_neg_integer().
 in_blocks(What, Options) ->
     proplists:get_value(What, Options).
+-spec in_bytes(atom(), [{atom(), term()}]) -> non_neg_integer().
 in_bytes(What, Options) ->
     512 * in_blocks(What, Options).
 
+-spec build_fw_file([{atom(), term()}], binary(), binary(), binary(), binary()) -> ok.
 build_fw_file(Options, BootFs, MbrA, MbrB, RootFs) ->
     Instructions = [{bootloader,
 		     [[<<"pwrite">>, <<"data/boot.img">>, in_bytes(boot_partition_start, Options), byte_size(BootFs)]]},
@@ -48,6 +52,10 @@ build_fw_file(Options, BootFs, MbrA, MbrB, RootFs) ->
 		    {update_b,
 		     [[<<"pwrite">>, <<"data/rootfs.img">>, in_bytes(rootfs_b_partition_start, Options), byte_size(RootFs)],
 		      [<<"pwrite">>, <<"data/mbr-b.img">>, 0, byte_size(MbrB)]]},
+		    {autoupdate,
+		     [[<<"compare_and_run">>, <<"data/mbr-a.img">>, 0, byte_size(MbrA), <<"update_b">>],
+		      [<<"compare_and_run">>, <<"data/mbr-b.img">>, 0, byte_size(MbrB), <<"update_a">>],
+		      [<<"fail">>, <<"Unexpected MBR contents so not updating">>]]},
 		    {complete,
 		     [[<<"pwrite">>, <<"data/mbr-a.img">>, 0, byte_size(MbrA)],
 		      [<<"pwrite">>, <<"data/boot.img">>, in_bytes(boot_partition_start, Options), byte_size(BootFs)],
@@ -60,9 +68,11 @@ build_fw_file(Options, BootFs, MbrA, MbrB, RootFs) ->
 		{"data/mbr-b.img", MbrB},
 	        {"data/rootfs.img", RootFs}],
     OutputFile = proplists:get_value(firmware, Options),
-    {ok, _} = zip:create(OutputFile, FileList).
+    {ok, _} = zip:create(OutputFile, FileList),
+    ok.
 
 % Build the MBR for booting off partition A
+-spec mbr_a([{atom(),term()}]) -> binary().
 mbr_a(Options) ->
     mbr:create([{boot, fat12, in_blocks(boot_partition_start, Options),
 		 in_blocks(boot_partition_count, Options)},
@@ -74,6 +84,7 @@ mbr_a(Options) ->
 		 in_blocks(application_partition_count, Options)}]).
 
 % Build the MBR for booting off partition B
+-spec mbr_b([{atom(),term()}]) -> binary().
 mbr_b(Options) ->
     mbr:create([{boot, fat12, in_blocks(boot_partition_start, Options),
 		 in_blocks(boot_partition_count, Options)},
@@ -92,19 +103,19 @@ tmpdir() ->
     end.
 
 % Build the boot file system
--spec boot_fs([term()]) -> binary().
+-spec boot_fs([{atom(),term()}]) -> binary().
 boot_fs(Options) ->
     BootFilename = tmpdir() ++ "/boot.vfat",
-    ok = subprocess:run("dd", ["if=/dev/zero", "of=" ++ BootFilename, "count=0",
-			  "seek=" ++ integer_to_list(in_blocks(boot_partition_count, Options))]),
-    ok = subprocess:run("mkfs.vfat", ["-F", "12", "-n", "boot", BootFilename]),
-    ok = subprocess:run("mcopy", ["-i", BootFilename, proplists:get_value(mlo_path, Options), "::MLO"]),
-    ok = subprocess:run("mcopy", ["-i", BootFilename, proplists:get_value(uboot_path, Options), "::U-BOOT.IMG"]),
+    {ok,_} = subprocess:run("dd", ["if=/dev/zero", "of=" ++ BootFilename, "count=0",
+				   "seek=" ++ integer_to_list(in_blocks(boot_partition_count, Options))]),
+    {ok,_} = subprocess:run("mkfs.vfat", ["-F", "12", "-n", "boot", BootFilename]),
+    {ok,_} = subprocess:run("mcopy", ["-i", BootFilename, proplists:get_value(mlo_path, Options), "::MLO"]),
+    {ok,_} = subprocess:run("mcopy", ["-i", BootFilename, proplists:get_value(uboot_path, Options), "::U-BOOT.IMG"]),
     case proplists:get_value(uenv_txt, Options) of
 	UEnvTxtContents when is_list(UEnvTxtContents) ->
 	    TmpFilename = tmpdir() ++ "/uEnv.txt",
 	    ok = file:write_file(TmpFilename, list_to_binary(UEnvTxtContents)),
-	    ok = subprocess:run("mcopy", ["-i", BootFilename, TmpFilename, "::UENV.TXT"]),
+	    {ok,_} = subprocess:run("mcopy", ["-i", BootFilename, TmpFilename, "::UENV.TXT"]),
 	    ok = file:delete(TmpFilename);
 	undefined ->
 	    ok
