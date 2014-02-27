@@ -15,6 +15,17 @@ signed updates, etc.  Firmware files are compressed zip files
 internally so they can be exchanged over the Internet easily and have
 some protection against corruption.
 
+## Installation requirements
+
+If you're using fwtool via the Nerves-Project, you should already have the
+required executables in your path. If not, the you'll need to install
+dosfstools:
+
+    sudo apt-get install dosfstools
+
+Also check that `mkfs.vfat` is in your path. It is often found in `/sbin`
+or `/usr/sbin`.
+
 ## Firmware image format
 
 As previously mentioned, firmware files are just zip archives. They must
