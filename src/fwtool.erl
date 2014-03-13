@@ -99,10 +99,14 @@ option_spec_list() ->
      {application_partition_start, undefined, "application_partition_start", string, "App partition start in blocks (create)"},
      {application_partition_count, undefined, "application_partition_count", string, "App partition size in blocks (create)"},
 
-     {mlo_path, undefined, "mlo_path", string, "Path to MLO bootloader (create)"},
-     {uboot_path, undefined, "uboot_path", string, "Path to U-Boot bootloader (create)"},
-     {uenv_txt, undefined, "uenv_txt", string, "Contents of the uEnv.txt file (create)"},
+     {mlo_path, undefined, "mlo_path", string, "Path to MLO bootloader (create, uboot)"},
+     {uboot_path, undefined, "uboot_path", string, "Path to U-Boot bootloader (create, uboot)"},
+     {uenv_txt, undefined, "uenv_txt", string, "Contents of the uEnv.txt file (create, uboot)"},
      {rootfs_path, undefined, "rootfs_path", string, "Path to RootFS image (create)"},
+     {kernel_path, undefined, "kernel_path", string, "Path to Linux kernel image (create, syslinux)"},
+     {syslinuxcfg_path, undefined, "syslinuxcfg_path", string, "Path to syslinux.cfg (create, syslinux)"},
+     {mbr_bootstrap_path, undefined, "mbr_bootstrap_path", string, "Path to MBR bootstrap code (create, syslinux)"},
+
      {command,     undefined,   undefined,  string,     "Command"},
      {firmware,    undefined,   undefined,  string,     "Firmware file name"}
     ].

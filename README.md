@@ -26,7 +26,7 @@ dosfstools:
 Also check that `mkfs.vfat` is in your path. It is often found in `/sbin`
 or `/usr/sbin`.
 
-## Firmware image format
+## ARM Firmware image format
 
 As previously mentioned, firmware files are just zip archives. They must
 contain at least one file called `instructions.json`. In the common
@@ -96,6 +96,15 @@ On a mismatch, the next command in the list is run.
 This command immediately fails the update with a message. It is
 intended to be used with `compare_and_run` when none of the comparisons
 match.
+
+## x86 Firmware Format
+
+For x86 targets, the firmware format is similar to that used on ARM
+platforms. However, instead of using u-boot, we use syslinux to boot
+the Linux kernel. Since it is not possible to use the MBR partition
+switch trick to support a primary and fallback kernel with syslinux,
+a special configuration script is used. Additionally, the Linux kernel
+images must be stored in the boot partition.
 
 ## Invoking from the command line
 
