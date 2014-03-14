@@ -88,6 +88,7 @@ option_spec_list() ->
      {config,      $c,          "config",   {string, "fwtool.config"},     "Config file (create, run)"},
      {destination, $d,          "destination", string,  "Destination (run) (e.g. /dev/mmcblk0, /dev/sdc, firmware.img)"},
      {update_type, $t,          "type",     atom,       "Update type (run)"},
+     {base_path, undefined,     "base_path", string,    "Base path for any relative directories specified in other options"},
      {boot_partition_start, undefined, "boot_partition_start", string, "Boot partition start in blocks (create)"},
      {boot_partition_count, undefined, "boot_partition_count", string, "Boot partition size in blocks (create)"},
      {rootfs_a_partition_start, undefined, "rootfs_a_partition_start", string, "Rootfs A partition start in blocks (create)"},

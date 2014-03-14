@@ -30,9 +30,9 @@
 build(Options) ->
     BootFs = boot_fs(Options),
     Mbr = mbr(Options),
-    RootFsPath = proplists:get_value(rootfs_path, Options),
+    RootFsPath = get_path(rootfs_path, Options),
     {ok, RootFs} = file:read_file(RootFsPath),
-    KernelPath = proplists:get_value(kernel_path, Options),
+    KernelPath = get_path(kernel_path, Options),
     {ok, Kernel} = file:read_file(KernelPath),
     build_fw_file(Options, BootFs, Mbr, Kernel, RootFs).
 
@@ -87,7 +87,7 @@ build_fw_file(Options, BootFs, Mbr, Kernel, RootFs) ->
 % Build the MBR
 -spec mbr([{atom(),term()}]) -> binary().
 mbr(Options) ->
-    BootstrapCodePath = proplists:get_value(mbr_bootstrap_path, Options),
+    BootstrapCodePath = get_path(mbr_bootstrap_path, Options),
     {ok, BootstrapCode} = file:read_file(BootstrapCodePath),
     mbr:create(BootstrapCode,
 	       [{boot, fat12, in_blocks(boot_partition_start, Options),
@@ -106,6 +106,24 @@ tmpdir() ->
 	Dir -> Dir
     end.
 
+get_path(Key, Options) ->
+    PossibleRelativePath = proplists:get_value(Key, Options),
+    case hd(PossibleRelativePath) of
+	$/ ->
+	    PossibleRelativePath;
+	_ ->
+	    BasePath = proplists:get_value(base_path, Options),
+	    BasePath ++ "/" ++ PossibleRelativePath
+    end.
+
+check_existance(Path) ->
+    case file:open(Path, [read]) of
+	{ok, IoDevice} ->
+	    file:close(IoDevice);
+	{error, Reason} ->
+	    exit({open_error, Path, Reason})
+    end.
+
 % Build the boot file system
 -spec boot_fs([{atom(),term()}]) -> binary().
 boot_fs(Options) ->
@@ -114,13 +132,18 @@ boot_fs(Options) ->
 				   "seek=" ++ integer_to_list(in_blocks(boot_partition_count, Options))]),
     {ok,_} = subprocess:run("mkfs.vfat", ["-F", "12", "-n", "boot", BootFilename]),
 
-    SyslinuxCfg = proplists:get_value(syslinuxcfg_path, Options),
+    SyslinuxCfg = get_path(syslinuxcfg_path, Options),
+    check_existance(SyslinuxCfg),
+
     DefaultCfgFilename = tmpdir() ++ "/default.cfg",
     ok = file:write_file(DefaultCfgFilename, build_default_file("A")),
 
     {ok,_} = subprocess:run("mcopy", ["-i", BootFilename, SyslinuxCfg, "::syslinux.cfg"]),
     {ok,_} = subprocess:run("mcopy", ["-i", BootFilename, DefaultCfgFilename, "::default.cfg"]),
-    {ok,_} = subprocess:run("mcopy", ["-i", BootFilename, proplists:get_value(kernel_path, Options), "::bzImage-a"]),
+
+    KernelPath = get_path(kernel_path, Options),
+    check_existance(KernelPath),
+    {ok,_} = subprocess:run("mcopy", ["-i", BootFilename, KernelPath, "::bzImage-a"]),
     {ok,_} = subprocess:run("syslinux", ["-i", BootFilename]),
     {ok, Contents} = file:read_file(BootFilename),
     ok = file:delete(BootFilename),

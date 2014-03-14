@@ -31,7 +31,7 @@ build(Options) ->
     BootFs = boot_fs(Options),
     MbrA = mbr_a(Options),
     MbrB = mbr_b(Options),
-    RootFsPath = proplists:get_value(rootfs_path, Options),
+    RootFsPath = get_path(rootfs_path, Options),
     {ok, RootFs} = file:read_file(RootFsPath),
     build_fw_file(Options, BootFs, MbrA, MbrB, RootFs).
 
@@ -104,6 +104,16 @@ tmpdir() ->
 	Dir -> Dir
     end.
 
+get_path(Key, Options) ->
+    PossibleRelativePath = proplists:get_value(Key, Options),
+    case hd(PossibleRelativePath) of
+	$/ ->
+	    PossibleRelativePath;
+	_ ->
+	    BasePath = proplists:get_value(base_path, Options),
+	    BasePath ++ "/" ++ PossibleRelativePath
+    end.
+
 % Build the boot file system
 -spec boot_fs([{atom(),term()}]) -> binary().
 boot_fs(Options) ->
@@ -111,8 +121,8 @@ boot_fs(Options) ->
     {ok,_} = subprocess:run("dd", ["if=/dev/zero", "of=" ++ BootFilename, "count=0",
 				   "seek=" ++ integer_to_list(in_blocks(boot_partition_count, Options))]),
     {ok,_} = subprocess:run("mkfs.vfat", ["-F", "12", "-n", "boot", BootFilename]),
-    {ok,_} = subprocess:run("mcopy", ["-i", BootFilename, proplists:get_value(mlo_path, Options), "::MLO"]),
-    {ok,_} = subprocess:run("mcopy", ["-i", BootFilename, proplists:get_value(uboot_path, Options), "::U-BOOT.IMG"]),
+    {ok,_} = subprocess:run("mcopy", ["-i", BootFilename, get_path(mlo_path, Options), "::MLO"]),
+    {ok,_} = subprocess:run("mcopy", ["-i", BootFilename, get_path(uboot_path, Options), "::U-BOOT.IMG"]),
     case proplists:get_value(uenv_txt, Options) of
 	UEnvTxtContents when is_list(UEnvTxtContents) ->
 	    TmpFilename = tmpdir() ++ "/uEnv.txt",
