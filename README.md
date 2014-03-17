@@ -1,4 +1,5 @@
 # fwtool
+[![Build Status](https://travis-ci.org/nerves-project/fwtool.png)](https://travis-ci.org/nerves-project/fwtool)
 
 This is an Erlang version that's has similar features to some firmware
 image builders I've written or used in other environments. It
