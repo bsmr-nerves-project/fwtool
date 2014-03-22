@@ -145,5 +145,6 @@ boot_fs(Options) ->
     {ok,_} = subprocess:run("mcopy", ["-i", BootFilename, KernelPath, "::bzImage.a"]),
     {ok,_} = subprocess:run("syslinux", ["-i", BootFilename]),
     {ok, Contents} = file:read_file(BootFilename),
+    ok = file:delete(DefaultCfgFilename),
     ok = file:delete(BootFilename),
     Contents.

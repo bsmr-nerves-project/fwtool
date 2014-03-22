@@ -45,9 +45,20 @@ in_bytes(What, Options) ->
 
 % Build the config.txt file contents that are used
 % to determine which Linux kernel to boot.
-%-spec build_config_file(string()) -> binary().
-%build_config_file(Which) ->
-%    list_to_binary("DEFAULT Linux-" ++ Which ++ "\n").
+-spec build_config_file(string(), integer()) -> binary().
+build_config_file(Kernel, Partition) ->
+    ConfigTxt =
+	"# DO NOT EDIT. USED BY NERVES FOR FIRMWARE UPDATE\n"
+	"cmdline=\"dwc_otg.fiq_fix_enable=1 sdhci-bcm2708.sync_after_dma=0 dwc_otg.lpm_enable=0 console=tty1 root=/dev/mmcblk0p" ++ integer_to_list(Partition) ++ " rootwait -u\"\n"
+	"arm_freq=700\n"
+	"core_freq=250\n"
+	"kernel=" ++ Kernel ++ "\n"
+	"disable_overscan=1\n"
+	"gpu_mem_256=100\n"
+	"gpu_mem_512=100\n"
+	"sdram_freq=400\n"
+	"over_voltage=0\n",
+    list_to_binary(ConfigTxt).
 
 -spec build_fw_file([{atom(), term()}], binary(), binary(), binary(), binary()) -> ok.
 build_fw_file(Options, BootFs, Mbr, Kernel, RootFs) ->
@@ -72,11 +83,13 @@ build_fw_file(Options, BootFs, Mbr, Kernel, RootFs) ->
 		      [<<"pwrite">>, <<"data/rootfs.img">>, in_bytes(rootfs_a_partition_start, Options), byte_size(RootFs)]]}
 		   ],
     InstructionsBin = jsx:encode(Instructions, [space, indent]),
+    ConfigA = build_config_file("zImage.a", 2),
+    ConfigB = build_config_file("zImage.b", 3),
     FileList = [{"instructions.json", InstructionsBin},
 		{"data/mbr.img", Mbr},
 		{"data/boot.img", BootFs},
-%		{"data/config.a.txt", ConfigA},
-%		{"data/config.b.txt", ConfigB},
+		{"data/config.a.txt", ConfigA},
+		{"data/config.b.txt", ConfigB},
 		{"data/zImage", Kernel},
 	        {"data/rootfs.img", RootFs}],
     OutputFile = proplists:get_value(firmware, Options),
@@ -141,8 +154,13 @@ boot_fs(Options) ->
     [ copy_to_fat(BootFilename, abspath(Src, Options), Dst) || {Src, Dst} <- OtherFiles ],
 
     KernelPath = get_path(kernel_path, Options),
-    copy_to_fat(BootFilename, KernelPath, "zImage"),
+    copy_to_fat(BootFilename, KernelPath, "zImage.a"),
+
+    DefaultCfgFilename = tmpdir() ++ "/fwtool-config.txt",
+    ok = file:write_file(DefaultCfgFilename, build_config_file("zImage.a", 2)),
+    copy_to_fat(BootFilename, DefaultCfgFilename, "config.txt"),
 
     {ok, Contents} = file:read_file(BootFilename),
     ok = file:delete(BootFilename),
+    ok = file:delete(DefaultCfgFilename),
     Contents.
