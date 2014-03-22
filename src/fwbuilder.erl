@@ -32,9 +32,7 @@ main(Options) ->
     build(Bootloader, Options).
 
 -spec build(atom(), [{atom(), term()}]) -> ok.
-build(uboot, Options) ->
-    uboot_fwbuilder:build(Options);
-build(syslinux, Options) ->
-    syslinux_fwbuilder:build(Options);
-build(Bootloader, _Options) ->
-    exit({unknown_bootloader, Bootloader}).
+build(uboot, Options) -> uboot_fwbuilder:build(Options);
+build(syslinux, Options) -> syslinux_fwbuilder:build(Options);
+build(rpi, Options) -> rpi_fwbuilder:build(Options);
+build(Bootloader, _Options) -> exit({unknown_bootloader, Bootloader}).

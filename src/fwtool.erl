@@ -27,6 +27,10 @@
 -export([main/1]).
 
 main(CmdLine) ->
+    % This is a hack around the mtools failures when the partition
+    % size isn't what it wants.
+    os:putenv("MTOOLS_SKIP_CHECK", "1"),
+
     OptSpecList = option_spec_list(),
     case getopt:parse(OptSpecList, CmdLine) of
 	{ok, {Options, _NonOptArgs}} ->
