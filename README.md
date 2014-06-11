@@ -1,3 +1,10 @@
+# IMPORTANT
+
+This project is superseded by https://github.com/fhunleth/fwup. fwup supports
+similar style updates as fwtool, but is smaller, faster, has more features and
+is not hacked up to support all of the architectures that Nerves supports.
+Please migrate to fwup or update your Nerves installation to pull in fwup.
+
 # fwtool
 [![Build Status](https://travis-ci.org/nerves-project/fwtool.png)](https://travis-ci.org/nerves-project/fwtool)
 
